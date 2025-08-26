@@ -1,10 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>My Pinterest Randomizer</title>
+  <title>Pinterest Randomizer</title>
 </head>
 <body>
-  <h1>Hello World 👋</h1>
-  <p>This is my test site for Pinterest API access.</p>
+  <h1>Pinterest Randomizer</h1>
+
+  <label for="boards">Choose a board:</label>
+  <select id="boards"></select>
+  <button id="getPin">Get Random Pin</button>
+
+  <div id="result" style="margin-top:20px;"></div>
+
+  <script>
+    const token = localStorage.getItem("pinterest_token");
+
+
+    async function fetchBoards() {
+      try {
+        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent("https://api.pinterest.com/v5/boards")}`, {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const wrapped = await response.json();
+        const data = JSON.parse(wrapped.contents);
+
+        const boardSelect = document.getElementById("boards");
+        data.items.forEach(board => {
+          const opt = document.createElement("option");
+          opt.value = board.id;
+          opt.textContent = board.name;
+          boardSelect.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+        alert("Could not load boards. Check your token.");
+      }
+    }
+
+    async function getRandomPin() {
+      const boardId = document.getElementById("boards").value;
+      try {
+        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent("https://api.pinterest.com/v5/boards/" + boardId + "/pins")}`, {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const wrapped = await response.json();
+        const data = JSON.parse(wrapped.contents);
+
+        const pins = data.items;
+        if (!pins || pins.length === 0) {
+          document.getElementById("result").innerHTML = "<p>No pins found.</p>";
+          return;
+        }
+
+        const randomPin = pins[Math.floor(Math.random() * pins.length)];
+        document.getElementById("result").innerHTML = `
+          <p>${randomPin.title || "No title"}</p>
+          <img src="${randomPin.media.images["474x"].url}" />
+        `;
+      } catch (e) {
+        console.error(e);
+        document.getElementById("result").textContent = "Error fetching pins.";
+      }
+    }
+
+    document.getElementById("getPin").addEventListener("click", getRandomPin);
+    fetchBoards();
+  </script>
 </body>
 </html>
